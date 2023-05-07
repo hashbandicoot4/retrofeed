@@ -34,7 +34,7 @@ CONFIG = {'display': {'height': 24,
           # the 'segments' directory.  Other keys/values depend on the segment.
           'segments': {'otd': {'module': 'wiki_on_this_day.py'},
                        'lucky': {'module': 'lucky_numbers.py'},
-                       'nash_wx': {'module': 'us_weather.py',
+                       'nash_wx': {'module': 'uk_weather.py',
                                    'refresh': 15,
                                    'lat': 36.118542,
                                    'lon': -86.798358,
@@ -46,7 +46,7 @@ CONFIG = {'display': {'height': 24,
                        # and not a second time when this one is set up.
                        # Also note the ".py" at the end of a segment module's
                        # name is assumed if missing, so we can be lazy...
-                       'bos_wx': {'module': 'us_weather',
+                       'bos_wx': {'module': 'uk_weather',
                                   'refresh': 30,
                                   'lat': 42.365738,
                                   'lon': -71.017027,
