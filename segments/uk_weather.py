@@ -30,6 +30,16 @@
 #
 ################################################################################
 
+# http://datapoint.metoffice.gov.uk/public/data/val/wxfcs/all/xml/sitelist/?res=3hourly&key=53d263d4-fd13-4f65-a707-b7265601b092
+# <Location elevation="70.0" id="351290" latitude="54.7751" longitude="-1.5833" name="Durham" region="ne" unitaryAuthArea="Durham"/>
+
+# <Location elevation="102.0" id="99049" latitude="54.767" longitude="-1.583" name="Durham" region="ne" unitaryAuthArea="Durham"/>
+# <Location elevation="55.0" id="324152" latitude="51.3775" longitude="-0.0933" name="Croydon" region="se" unitaryAuthArea="Greater London"/>
+# <Location elevation="53.0" id="353773" latitude="51.3617" longitude="-0.1923" name="Sutton" region="se" unitaryAuthArea="Greater London"/>
+# <Location elevation="11.0" id="352409" latitude="51.5081" longitude="-0.1248" name="London" region="se" unitaryAuthArea="Greater London"/>
+
+# http://datapoint.metoffice.gov.uk/public/data/val/wxfcs/all/xml/351290/?res=3hourly&key=53d263d4-fd13-4f65-a707-b7265601b092
+# The predicted forecast every 3 hours within a day, starting at 0 to 21 hrs of the day
 
 import datetime as dt
 from segment_parent import SegmentParent
@@ -40,22 +50,26 @@ class Segment(SegmentParent):
     utc_offsets = {'EST':'-0500', 'CST':'-0600', 'MST':'-0700', 'PST':'-0800', 'AKST':'-0900', 'HST':'-1000',
                    'EDT':'-0400', 'CDT':'-0500', 'MDT':'-0600', 'PDT':'-0700', 'AKDT':'-0800', 'HDT':'-0900' }
                   
+    # Redefine this so that any UK location can be provided in the CONFIG and it is searched, otherwise London is provided
     def __init__(self, display, init):
         super().__init__(display, init, default_refresh=20)
-        # Set other init variables unique to this segment
+        # Set the ID from the API based on the location provided
         self.location = init.get('location', None)
-        self.lat = init.get('lat', None)
-        self.lon = init.get('lon', None)
-        # Use default lat/lon if either is missing
-        if self.lat is None or self.lon is None:
-            self.lat = 36.116453
-            self.lon = -86.675228
-            self.location = 'Default Location (BNA)'
+        if self.location == "Durham":
+            self.id = "351290"
+        if self.location == "Sutton":
+            self.id = "353773"      
+        # Use default of London if a city is not provided
+        if self.location == "London" or self.location == None:
+            self.location = "London"
+            self.id = "352409"
 
 
     def show_intro(self):
-        self.d.print('Weather provided by weather.gov')
+        self.d.print('Weather provided by metoffice.gov.uk')
 
+
+# CONTINUE FROM HERE ...
 
     @classmethod
     def get_comfort_from_dewpoint(cls, dp_text):
@@ -87,6 +101,18 @@ class Segment(SegmentParent):
         self.data['dewpoint'] = 'N/A'
         self.data['periods'] = [{'timeframe':'Forecast Not Available',
                                  'forecast':''}]
+
+        self.data["Temperature"] = "N/A"
+        self.data["Feel Like"] = "N/A"
+        self.data["Weather Type"] = "N/A"
+        self.data["Precipitation Probability"] = "N/A"
+        self.data["Wind Speed"] = "N/A"
+        self.data["Wind Gust"] = "N/A"
+        self.data["Wind Direction"] = "N/A"
+        self.data["Humidity"] = "N/A"
+        self.data["Visability"] = "N/A"
+        self.data["Max UV"] = "N/A"
+
 
     @classmethod
     def string_to_dt(cls, s):

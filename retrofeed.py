@@ -29,6 +29,8 @@ CONFIG = {'display': {'height': 24,
                       'show_intros':True,
                      },
 
+        # Add segments and then place them in order in the playlist
+
           # Segment modules must be declared and given a name (key) before use.
           # Each must have at least a 'module' value specifying a .py file in
           # the 'segments' directory.  Other keys/values depend on the segment.
@@ -36,9 +38,7 @@ CONFIG = {'display': {'height': 24,
                        'lucky': {'module': 'lucky_numbers.py'},
                        'nash_wx': {'module': 'uk_weather.py',
                                    'refresh': 15,
-                                   'lat': 36.118542,
-                                   'lon': -86.798358,
-                                   'location': 'Nashville Intl Airport (BNA)'},
+                                   'location': 'Durham'},
                        # Example of declaring a segment module twice, with a
                        # different name (key) and different initialization
                        # parameters.  Note that show_intro() will only be
@@ -48,9 +48,7 @@ CONFIG = {'display': {'height': 24,
                        # name is assumed if missing, so we can be lazy...
                        'bos_wx': {'module': 'uk_weather',
                                   'refresh': 30,
-                                  'lat': 42.365738,
-                                  'lon': -71.017027,
-                                  'location': 'Boston Logan Intl Airport'},
+                                  'location': 'London'},
                        'news': {'module': 'ap_news'},
                        'iss': {'module': 'spot_the_station', 'country':'United_States', 'region':'Tennessee', 'city':'Nashville'},
                        'fin': {'module': 'yahoo_finance'},
