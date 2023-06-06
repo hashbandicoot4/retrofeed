@@ -41,14 +41,16 @@
 # http://datapoint.metoffice.gov.uk/public/data/val/wxfcs/all/xml/351290/?res=3hourly&key=53d263d4-fd13-4f65-a707-b7265601b092
 # The predicted forecast every 3 hours within a day, starting at 0 to 21 hrs of the day
 
-import datetime as dt
+from datetime import datetime as dt, time
+import json
+import urllib.request
 from segment_parent import SegmentParent
 
 
 class Segment(SegmentParent):
     
-    utc_offsets = {'EST':'-0500', 'CST':'-0600', 'MST':'-0700', 'PST':'-0800', 'AKST':'-0900', 'HST':'-1000',
-                   'EDT':'-0400', 'CDT':'-0500', 'MDT':'-0600', 'PDT':'-0700', 'AKDT':'-0800', 'HDT':'-0900' }
+    # utc_offsets = {'EST':'-0500', 'CST':'-0600', 'MST':'-0700', 'PST':'-0800', 'AKST':'-0900', 'HST':'-1000',
+    #                'EDT':'-0400', 'CDT':'-0500', 'MDT':'-0600', 'PDT':'-0700', 'AKDT':'-0800', 'HDT':'-0900' }
                   
     # Redefine this so that any UK location can be provided in the CONFIG and it is searched, otherwise London is provided
     def __init__(self, display, init):
@@ -71,36 +73,38 @@ class Segment(SegmentParent):
 
 # CONTINUE FROM HERE ...
 
-    @classmethod
-    def get_comfort_from_dewpoint(cls, dp_text):
-        dp = int(dp_text.split('F')[0])
-        if dp < 50:
-            return 'Dry'
-        if dp <= 60:
-            return 'Pleasant'
-        if dp <= 65:
-            return 'A Bit Humid'
-        if dp <= 70:
-            return 'Humid'
-        if dp <= 75:
-            return 'Very Humid'
-        return 'Oppressive'
+    # @classmethod
+    # def get_comfort_from_dewpoint(cls, dp_text):
+    #     dp = int(dp_text.split('F')[0])
+    #     if dp < 50:
+    #         return 'Dry'
+    #     if dp <= 60:
+    #         return 'Pleasant'
+    #     if dp <= 65:
+    #         return 'A Bit Humid'
+    #     if dp <= 70:
+    #         return 'Humid'
+    #     if dp <= 75:
+    #         return 'Very Humid'
+    #     return 'Oppressive'
 
 
     def assign_na(self):
-        self.data['conditions_location'] = 'N/A'
-        self.data['currently'] = 'N/A'
-        self.data['temp_f'] = 'N/A'
-        self.data['temp_c'] = 'N/A'
-        self.data['humidity'] = 'N/A'
-        self.data['barometer'] = 'N/A'
-        self.data['comfort'] = ''
-        self.data['last_update'] = 'N/A'
-        self.data['wind_speed'] = 'N/A'
-        self.data['visibility'] = 'N/A'
-        self.data['dewpoint'] = 'N/A'
-        self.data['periods'] = [{'timeframe':'Forecast Not Available',
-                                 'forecast':''}]
+        # self.data['conditions_location'] = 'N/A'
+        # self.data['currently'] = 'N/A'
+        # self.data['temp_f'] = 'N/A'
+        # self.data['temp_c'] = 'N/A'
+        # self.data['humidity'] = 'N/A'
+        # self.data['barometer'] = 'N/A'
+        # self.data['comfort'] = ''
+        # self.data['last_update'] = 'N/A'
+        # self.data['wind_speed'] = 'N/A'
+        # self.data['visibility'] = 'N/A'
+        # self.data['dewpoint'] = 'N/A'
+        # self.data['periods'] = [{'timeframe':'Forecast Not Available',
+        #                          'forecast':''}]
+
+        # UNDERSTAND HOW SELF.DATA WORKS AND HOW TO THINGS ARE PRINTED BY IT
 
         self.data["Temperature"] = "N/A"
         self.data["Feel Like"] = "N/A"
@@ -134,64 +138,173 @@ class Segment(SegmentParent):
             dt_object = dt.datetime.strptime(dt_string, '%Y %d %b %I:%M %p').astimezone()
         return dt_object
 
-
+# Work in refreshing the data later on
     def refresh_data(self):
         self.data = {'fetched_on':dt.datetime.now(),
                      'periods':[],
                      'hazards':[]}
 
-        url = f'https://forecast.weather.gov/MapClick.php?lat={self.lat}&lon={self.lon}'
-        soup = self.get_soup(url)
-        # Even if not None, also check one element to make sure the site is
-        # currently showing weather (i.e. isn't down but still returning soup)
-        if soup is None or soup.find('h2', 'panel-title') is None:
-            self.assign_na()
-            return
+        # Load the correct data
+        # url = f'https://forecast.weather.gov/MapClick.php?lat={self.lat}&lon={self.lon}'
+        url = f"http://datapoint.metoffice.gov.uk/public/data/val/wxfcs/all/json/{self.id}?res=3hourly&key=53d263d4-fd13-4f65-a707-b7265601b092"
+        response = urllib.request.urlopen(url)
+        weather_data = (response.read()).decode("utf-8")
+        
+        # Convert the data to a dictionary
+        weather = json.loads(weather_data)
 
-        # Parse away...
-        self.data['conditions_location'] = self.d.clean_chars(soup.find('h2', 'panel-title').string)
-        # If object wasn't instantiated with a location, set it to whatever came back from fetch
-        if self.location == None or self.location.strip() == '':
-            self.location = self.data['conditions_location']
-        self.data['currently'] = self.d.clean_chars(soup.find('p', 'myforecast-current').string)
-        self.data['temp_f'] = self.d.clean_chars(soup.find('p', 'myforecast-current-lrg').string)
-        self.data['temp_c'] = self.d.clean_chars(soup.find('p', 'myforecast-current-sm').string)
+        # Collect the data for the current day
+        date0 = weather["SiteRep"]["DV"]["Location"]["Period"][0]
+        time0 = weather["SiteRep"]["DV"]["Location"]["Period"][0]["Rep"][0]["$"]
+        timeArray = []
+        tempArray = []
+        feelsArray = []
+        typeArray = []
+        precipArray = []
+        windSpeedArray = []
+        windGustArray = []
+        windDirectionArray = []
+        humidArray = []
+        visabilityArray = []
+        UVArray = []
 
-        # Various weather stats are stored as table data in the sole table
-        cells = soup.find_all('td')
-        key = None
-        for cell in cells:
-            if key is None:
-                key = cell.string.lower().replace(' ', '_')
-            else:
-                self.data[key] = self.d.clean_chars(cell.string)
-                key = None
+        # Provide all the information for the current day
+        for i in weather["SiteRep"]["DV"]["Location"]["Period"][0]["Rep"]:
+            timeArray.append(i["$"] - time0)
+            tempArray.append(i["T"])
+            feelsArray.append(i["F"])
+            typeArray.append(i["W"])
+            precipArray.append(i["Pp"])
+            windSpeedArray.append(i["S"])
+            windGustArray.append(i["G"])
+            windDirectionArray.append(i["D"])
+            humidArray.append(i["H"])
+            visabilityArray.append(i["V"])
+            UVArray.append(i["U"])
+        
+        # Re-initialise the arrays
+        timeArray.clear()
+        tempArray.clear()
+        feelsArray.clear()
+        typeArray.clear()
+        precipArray.clear()
+        windSpeedArray.clear()
+        windGustArray.clear()
+        windDirectionArray.clear()
+        humidArray.clear()
+        visabilityArray.clear()
+        UVArray.clear()
 
-        # Try to convert the "last_update" text to a real datetime value
-        if 'last_update' in self.data:
-            self.data['last_update_dt'] = self.string_to_dt(self.data['last_update'])
+        # Provide all the information for tomorrow if it is the evening
+        current_time = dt.utcnow().time()
+        if current_time > time(18,00):
+            for i in weather["SiteRep"]["DV"]["Location"]["Period"][1]["Rep"]:
+                timeArray.append(i["$"])
+                tempArray.append(i["T"])
+                feelsArray.append(i["F"])
+                typeArray.append(i["W"])
+                precipArray.append(i["Pp"])
+                windSpeedArray.append(i["S"])
+                windGustArray.append(i["G"])
+                windDirectionArray.append(i["D"])
+                humidArray.append(i["H"])
+                visabilityArray.append(i["V"])
+                UVArray.append(i["U"])
+        else:
+            # Provide most of the information for tomorrow if it is not the evening (for the hours 0am, 6am, 12pm, 6pm)
+            for i in weather["SiteRep"]["DV"]["Location"]["Period"][1]["Rep"]:
+                timeArray.append(i["$"])
+                tempArray.append(i["T"])
+                feelsArray.append(i["F"])
+                typeArray.append(i["W"])
+                precipArray.append(i["Pp"])
+                windSpeedArray.append(i["S"])
+                windGustArray.append(i["G"])
+                windDirectionArray.append(i["D"])
+                humidArray.append(i["H"])
+                visabilityArray.append(i["V"])
+                UVArray.append(i["U"])    
+                i = i + 1
+        
+        # Re-initialise the arrays
+        timeArray.clear()
+        tempArray.clear()
+        feelsArray.clear()
+        typeArray.clear()
+        precipArray.clear()
+        windSpeedArray.clear()
+        windGustArray.clear()
+        windDirectionArray.clear()
+        humidArray.clear()
+        visabilityArray.clear()
+        UVArray.clear()
 
-        # Text description of the dewpoint
-        self.data['comfort'] = self.get_comfort_from_dewpoint(self.data['dewpoint'])
+        # Provide most of the information for the next day (for the hours 0am, 6am, 12pm, 6pm)
+        for i in weather["SiteRep"]["DV"]["Location"]["Period"][1]["Rep"]:
+            timeArray.append(i["$"])
+            tempArray.append(i["T"])
+            feelsArray.append(i["F"])
+            typeArray.append(i["W"])
+            precipArray.append(i["Pp"])
+            windSpeedArray.append(i["S"])
+            windGustArray.append(i["G"])
+            windDirectionArray.append(i["D"])
+            humidArray.append(i["H"])
+            visabilityArray.append(i["V"])
+            UVArray.append(i["U"])    
+            i = i + 1
+        
+        # soup = self.get_soup(url)
+        # # Even if not None, also check one element to make sure the site is
+        # # currently showing weather (i.e. isn't down but still returning soup)
+        # if soup is None or soup.find('h2', 'panel-title') is None:
+        #     self.assign_na()
+        #     return
 
-        # Get period forecast from the alt-text of the weather icons
-        icons = soup.find_all('img', 'forecast-icon')
-        for icon in icons:
-            alt_text = icon['alt']
-            if alt_text is None or alt_text.strip() == '':
-                continue
-            split_text = alt_text.split(':', 1)
-            if len(split_text) == 2:
-                period = {'timeframe':self.d.clean_chars(split_text[0]),
-                          'forecast':self.d.clean_chars(split_text[1])}
-                self.data['periods'].append(period)
+        # # Parse away...
+        # self.data['conditions_location'] = self.d.clean_chars(soup.find('h2', 'panel-title').string)
+        # # If object wasn't instantiated with a location, set it to whatever came back from fetch
+        # if self.location == None or self.location.strip() == '':
+        #     self.location = self.data['conditions_location']
+        # self.data['currently'] = self.d.clean_chars(soup.find('p', 'myforecast-current').string)
+        # self.data['temp_f'] = self.d.clean_chars(soup.find('p', 'myforecast-current-lrg').string)
+        # self.data['temp_c'] = self.d.clean_chars(soup.find('p', 'myforecast-current-sm').string)
 
-        # Any hazard headlines?
-        hazards = soup.find_all('a', 'anchor-hazards')
-        for hazard in hazards:
-            stripped_haz = hazard.contents[0].strip()
-            if stripped_haz != 'Hazardous Weather Outlook' and stripped_haz != '':
-                self.data['hazards'].append(self.d.clean_chars(stripped_haz))
+        # # Various weather stats are stored as table data in the sole table
+        # cells = soup.find_all('td')
+        # key = None
+        # for cell in cells:
+        #     if key is None:
+        #         key = cell.string.lower().replace(' ', '_')
+        #     else:
+        #         self.data[key] = self.d.clean_chars(cell.string)
+        #         key = None
+
+        # # Try to convert the "last_update" text to a real datetime value
+        # if 'last_update' in self.data:
+        #     self.data['last_update_dt'] = self.string_to_dt(self.data['last_update'])
+
+        # # Text description of the dewpoint
+        # self.data['comfort'] = self.get_comfort_from_dewpoint(self.data['dewpoint'])
+
+        # # Get period forecast from the alt-text of the weather icons
+        # icons = soup.find_all('img', 'forecast-icon')
+        # for icon in icons:
+        #     alt_text = icon['alt']
+        #     if alt_text is None or alt_text.strip() == '':
+        #         continue
+        #     split_text = alt_text.split(':', 1)
+        #     if len(split_text) == 2:
+        #         period = {'timeframe':self.d.clean_chars(split_text[0]),
+        #                   'forecast':self.d.clean_chars(split_text[1])}
+        #         self.data['periods'].append(period)
+
+        # # Any hazard headlines?
+        # hazards = soup.find_all('a', 'anchor-hazards')
+        # for hazard in hazards:
+        #     stripped_haz = hazard.contents[0].strip()
+        #     if stripped_haz != 'Hazardous Weather Outlook' and stripped_haz != '':
+        #         self.data['hazards'].append(self.d.clean_chars(stripped_haz))
 
 
     # Override to add one more stale condition
