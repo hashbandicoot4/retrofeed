@@ -87,6 +87,10 @@ class Segment(SegmentParent):
     #     if dp <= 75:
     #         return 'Very Humid'
     #     return 'Oppressive'
+    @classmethod
+    def humidity(cls, humidity_text)
+        humid = int(humidity_text.split)
+        dp = int()
 
 
     def assign_na(self):
@@ -118,25 +122,25 @@ class Segment(SegmentParent):
         self.data["Max UV"] = "N/A"
 
 
-    @classmethod
-    def string_to_dt(cls, s):
-        # Convert a string in weather.gov's "last update" format to
-        # a timezone-aware datetime object
-        dt_string = s.strip()
-        # Assume year is current year (possibly inaccurate just after
-        # midnight on New Year's Eve... oh well)
-        dt_string = f"{dt.datetime.now().year} {dt_string}"
-        # Pull out the last word (presumably the time zone code)
-        tz = dt_string[dt_string.rfind(' ')+1:]
-        # If it matches an offset, replace code with offset and convert
-        if tz in cls.utc_offsets:
-            dt_string = dt_string.replace(tz, cls.utc_offsets[tz])
-            dt_object = dt.datetime.strptime(dt_string, '%Y %d %b %I:%M %p %z')
-        else:
-            # Otherwise, convert with local timezone info
-            dt_string = dt_string.replace(tz, '').strip()
-            dt_object = dt.datetime.strptime(dt_string, '%Y %d %b %I:%M %p').astimezone()
-        return dt_object
+    # @classmethod
+    # def string_to_dt(cls, s):
+    #     # Convert a string in weather.gov's "last update" format to
+    #     # a timezone-aware datetime object
+    #     dt_string = s.strip()
+    #     # Assume year is current year (possibly inaccurate just after
+    #     # midnight on New Year's Eve... oh well)
+    #     dt_string = f"{dt.datetime.now().year} {dt_string}"
+    #     # Pull out the last word (presumably the time zone code)
+    #     tz = dt_string[dt_string.rfind(' ')+1:]
+    #     # If it matches an offset, replace code with offset and convert
+    #     if tz in cls.utc_offsets:
+    #         dt_string = dt_string.replace(tz, cls.utc_offsets[tz])
+    #         dt_object = dt.datetime.strptime(dt_string, '%Y %d %b %I:%M %p %z')
+    #     else:
+    #         # Otherwise, convert with local timezone info
+    #         dt_string = dt_string.replace(tz, '').strip()
+    #         dt_object = dt.datetime.strptime(dt_string, '%Y %d %b %I:%M %p').astimezone()
+    #     return dt_object
 
 # Work in refreshing the data later on
     def refresh_data(self):
